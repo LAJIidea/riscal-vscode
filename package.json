@@ -43,7 +43,7 @@
             {
                 "language": "riscal",
                 "scopeName": "source.riscal",
-                "path": "./syntaxes/riscal-grammars.json."
+                "path": "./syntaxes/riscal.tmLanguage.json."
             }
         ],
         "commands": [
