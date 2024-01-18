@@ -1,0 +1,86 @@
+{
+    "name": "riscal-vscode",
+    "description": "Riscal programming language vscode extension",
+    "author": "DoBoth",
+    "version": "0.1.0",
+    "publisher": "WingSemi",
+    "icon": "icon.png",
+    "categories": [
+        "Programming Languages",
+        "Snippets"
+    ],
+    "engines": {
+        "vscode": "^1.27.0"
+    },
+    "activationEvents": [
+        "onLanguage:riscal",
+        "onCommand:riscal.runCode"
+    ],
+    "main": "./client/out/extension",
+    "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "riscal configuration",
+            "properties": {}
+        },
+        "snippets": [
+            {
+                "language": "riscal",
+                "path": "./snippets/riscal-snippets.json"
+            }
+        ],
+        "languages": [
+            {
+                "id": "riscal",
+                "aliases": ["RISCAL"],
+                "extensions": [
+                    ".al"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "riscal",
+                "scopeName": "source.riscal",
+                "path": "./syntaxes/riscal-grammars.json."
+            }
+        ],
+        "commands": [
+            {
+                "command": "riscal.runCode",
+                "title": "Run this Riscal Code",
+                "category": "riscal-vscode"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "riscal.runCode",
+                "key": "F5",
+                "mac": "F5",
+                "when": "editorTextFocus && editorLangId == 'riscal'"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile:parser && npm run compile",
+        "compile:parser": "cd server/src/antlr && antlr4ts -visitor Riscal.g4 && cd ../../..",
+        "compile": "npm run compile:client && npm run compile:server",
+        "compile:client": "tsc -p ./client/tsconfig.json",
+        "compile:server": "tsc -p ./server/tsconfig.json",
+        "watch:client": "tsc -w -p ./client/tsconfig.json",
+        "watch:server": "tsc -w -p ./server/tsconfig.json",
+        "postinstall": "cd client && npm install && cd ../server && npm install && cd .."   
+    },
+    "devDependencies": {
+		"@types/mocha": "^5.2.5",
+		"@types/node": "^10.11.4",
+		"typescript": "^3.1.1",
+		"npm-run-all": "^4.1.3",
+        "antlr4ts-cli": "0.5.0-alpha.4"
+    },
+    "dependencies": {
+        "antlr4ts": "0.5.0-alpha.4",
+        "npm": "^6.9.0"
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "funcUnit": {
+        "prefix": "FuncUnit",
+        "body": [
+            "FuncUnit sdasd() {",
+            "}"
+        ]
+    }
+}

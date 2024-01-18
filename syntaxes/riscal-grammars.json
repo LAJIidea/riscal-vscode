@@ -1,0 +1,79 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "fileTypes": ["al"],
+    "name": "riscal",
+    "scopeName": "source.riscal",
+    "patterns": [
+        {
+           "include": "#comment"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#operators"
+        },
+        {
+            "include": "#types"
+        },
+        {
+            "include": "#constants"
+        },
+        {
+            "include": "#strings"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.double-dash",
+                    "match": "\\/\\/.*$"
+                }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                   "name": "keyword.control.riscal",
+                   "match": "\\b(for|if|break|commit|else|while|return)\\b" 
+                },
+                {
+                    "name": "keyword.other.riscal",
+                    "match": "\\b(Parameter|Pipeline|Regfile|Operand|Memory|FuncUnit|Instruction)\\b"
+                }
+            ]
+        },
+        "operators": {
+            "patterns": [
+                {
+                    "name": "keyword.other.operator.riscal",
+                    "match": "\\b(not|and|or)\\b|\\b(w/)|(=)|(!)|(<)|(>)|(\\+)|(-)|(\\*)|(\\/)|(\\^)|(%)|(\\|)|(\\&\\&\\&)|(\\~\\~\\~)|(\\.\\.\\.)|(\\.\\.)|(\\?)"       
+                }
+            ]
+        },
+        "types": {
+            "patterns": [
+                {
+                    "name": "storage.type.riscal",
+                    "match": "\\b(uint[0-9]+|readport|writeport|int|)\\b"
+                }   
+            ]
+        },
+        "strings": {
+            "patterns": [
+              {
+                "name": "string.quoted.double",
+                "begin": "(\\$|)\"",
+                "end": "\"",
+                "patterns": [
+                  {
+                    "name": "constant.character.escape",
+                    "match": "\\\\."
+                  }
+                ]
+              }   
+            ]
+        }
+    }
+}
