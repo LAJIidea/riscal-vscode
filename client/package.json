@@ -7,10 +7,7 @@
     "engines": {
         "vscode": "^1.27.0"
     },
-    "scripts": {
-        "update-vscode": "vscode-install",
-		"postinstall": "vscode-install"
-    },
+    "scripts": {},
     "dependencies": {
         "@types/nunjucks": "^3.1.0",
         "compile": "0.0.2",
