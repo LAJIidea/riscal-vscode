@@ -2,7 +2,8 @@
     "funcUnit": {
         "prefix": "FuncUnit",
         "body": [
-            "FuncUnit sdasd() {",
+            "FuncUnit $1($2) {",
+                "$3",
             "}"
         ]
     }

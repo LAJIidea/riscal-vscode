@@ -64,13 +64,13 @@
     },
     "scripts": {
         "vscode:prepublish": "npm run compile:parser && npm run compile",
-        "compile:parser": "cd server/src/antlr && antlr4ts -visitor Riscal.g4 && cd ../../..",
+        "compile:parser": "cd server/src/antlr4 && antlr4ts -visitor Riscal.g4 -o gen && cd ../../..",
         "compile": "npm run compile:client && npm run compile:server",
         "compile:client": "tsc -p ./client/tsconfig.json",
         "compile:server": "tsc -p ./server/tsconfig.json",
         "watch:client": "tsc -w -p ./client/tsconfig.json",
         "watch:server": "tsc -w -p ./server/tsconfig.json",
-        "postinstall": "cd client && npm install && cd ../server && npm install && cd .."   
+        "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
     },
     "devDependencies": {
 		"@types/mocha": "^5.2.5",

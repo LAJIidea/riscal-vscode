@@ -122,86 +122,77 @@ assignTrialer : '[' subscript ']'
               | '.' assignTarget
               ;
 
-expression : single=concatExpr 
-            | res=concatExpr '?' first=concatExpr ':' second=concatExpr 
-            ;
+expression : res=expression '?' first=expression ':' second=expression
+           | '(' type ')' expression
+           | inside=expression '.' bee=expression
+        //    | '[' exprList? ']'
+        //    | '(' exprList? ')'
+           | expression '[' subscript ']'
+           | callee=expression '(' arguments=exprList? ')'
+           | expression logicalOp expression
+           | expression Concat expression
+           | expression OrOr expression
+           | expression shiftOp expression
+           | expression binaryOp expression
+           | expression compareOp expression
+           | unaryOp expression
+           | expression (PlusPlus | MinusMinus)
+           | atom
+           ;
 
-concatExpr : logicalAndExpr Concat concatExpr
-           | logicalAndExpr
-           ;
-logicalAndExpr : logicalOrExpr AndAnd logicalAndExpr
-               | logicalOrExpr
-               ;
-logicalOrExpr : notExpr OrOr logicalOrExpr
-              | notExpr
-              ;
-notExpr : Not notExpr
-        | comparison
-        ;
-comparison : orExpr compOp comparison
-           | orExpr
-           ;
-compOp : Less
-       | LessEqual
-       | Greater
-       | GreaterEqual
-       | Equality
-       | NotEqual
-       ;
-orExpr : xorExpr Or orExpr
-        | xorExpr
-        ;
-xorExpr : andExpr Caret xorExpr
-        | andExpr
-        ;
-andExpr : shiftExpr And andExpr
-        | shiftExpr
-        ;
-shiftExpr : arithExpr (LeftShift | RightShift) shiftExpr
-          | arithExpr
+logicalOp : AndAnd
+          | OrOr
           ;
-arithExpr : term (Plus | Minus) arithExpr
-          | term
-          ;
-term : power (Star | Div | Mod) term
-     | power
-     ;
-power : factor (PlusPlus | MinusMinus)
-      | single=factor
-      ;
-factor : (Minus | Tilde | Or | Caret | And) factor
-       | castExpr
+
+shiftOp: LeftShift
+       | RightShift
        ;
-// todo: CastOp is Hign-Level Operator Precedence
-castExpr : '(' type ')' castExpr
-        | atomExpr
-        ;
-atomExpr : atomExpr trailer
-         | atom 
+
+binaryOp : Plus
+         | Minus
+         | Star
+         | Div
+         | Mod
+         | And
+         | Or
+         | Caret
          ;
-atom : '(' exprList ')'
+
+compareOp : Less
+          | LessEqual
+          | Greater
+          | GreaterEqual
+          | Equality
+          | NotEqual
+          ;
+
+unaryOp : Or
+        | Caret
+        | And
+        | Minus
+        | Tilde
+        | Not
+        ;
+
+atom : id=Identifier
      | ('"' stringId=Identifier '"')
      | ('"' stringNum=Digit '"')    
      | BinaryData
-     | id=Identifier
      | num=Digit
      ;
-exprList : expression (',' expression)* ;
-trailer : '(' arglist? ')'
-        | '[' subscript ']'
-        | '.' atomExpr
-        ;
-arglist : logicalAndExpr (',' logicalAndExpr)* ;
+exprList : expression
+         | exprList Comma expression
+         | subscript
+         ;
+arglist : expression (',' expression)* ;
 // subscriptlist : subscript (',' subscript)* ','? ;
-subscript : single=logicalAndExpr 
-          | first=logicalAndExpr ':' sencond=logicalAndExpr
-          | lower=logicalAndExpr ':' upper=logicalAndExpr ':' step=logicalAndExpr 
+subscript : low = expression? Colon uper = expression? (Colon step=expression)?
           ;
 
 ifStatement : If '(' expression ')' '{' thenBody+=suite* '}' (Else '{' elBody+=suite* '}')? ;
 
 forIteration : For '(' forIterBody ')' '{' suite* '}' ;
-forIterBody : (varDecl '=' lowerBound=expression)? ';' upBound=comparison? ';' iter=arithExpr? ;
+forIterBody : (varDecl '=' lowerBound=expression)? ';' upBound=expression? ';' iter=expression? ;
 
 instrModule : InstrKW Identifier '(' instrParameters ')' '{' instrBody* '}';
 instrParameters : instrPara (',' instrPara)*;
@@ -228,7 +219,7 @@ syntaxArg : '%' Identifier
           ;
 instrSematic : Sematic '{' sematicBody* '}';
 sematicBody : fuStage
-            | atomExpr ';'
+            | expression ';'
             ;
 
 configModule : 'Config' Identifier '{' configEntry* '}' ;
@@ -293,6 +284,8 @@ Caret : '^';
 Not : '!';
 Tilde : '~';
 Concat : '::';
+Comma : ',';
+Colon : ':';
 
 UintType : 'uint' Digit+;
 IntType : 'int' Digit+;

@@ -5,3 +5,4 @@ client/out
 package-lock.json
 .antlr
 server/out
+server/src/antlr4/gen
