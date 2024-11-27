@@ -1,309 +1,372 @@
 grammar Riscal;
 
-module
-    : modules*
-    ;
+// @parser::members {
+// private int myself_results = 0;
+// }
 
-modules
-    : pipeModule
-    | regModule
-    | memModule
-    | operModule
-    | paraModule
-    | fuModule
-    | instrModule
-    | configModule
-    | includeModule
-    ;
+modules: module*;
 
-includeModule
-    : '#' IncludeKW '"' other '"'
-    ;
-other : baseName=Identifier ('.' extName=Identifier) ;
+module : NAMESPACE Identifier LBRACE (module | module_body)* RBRACE;
 
-// parameter
-paraModule : ParaKW paraName '=' Digit ';'?  ;
-paraName : Identifier;
+module_body : pipeline
+            | regfile
+            | operand
+            | instruction
+            | funcunit
+            | issue
+            | forward
+            | addrspace
+            | interface
+            | memory
+            | function
+            | struct
+            | enum
+            | statement
+            | trait
+            | impl
+            | typedef
+            | prototype
+            ;
 
+pipeline : PIPELINE Identifier LBRACE expr_list RBRACE ;
 
-// pipeline
-pipeModule : PipeKW pipeName '{' pipeStage (',' pipeStage)* ';'? '}' ;
-pipeName : Identifier;
-pipeStage : Identifier ( '=' pipeName '.' pipeStage)?;
+regfile: 'ArchRegFile' generic Identifier LBRACE port_statement* RBRACE;
 
+operand : OPERAD Identifier LBRACE (declaration SEMI)* arch_body* RBRACE;
 
-// regfile
-regModule : RegKW regName regSize '{' regBody* '}' ;
-regName : Identifier;
-regSize : '[' Digit ']' '[' Digit ']';
-regBody : regReadPort | regWritePort;
-regReadPort : ReadPort rwPortName (',' rwPortName)* ';' ;
-regWritePort : WritePort rwPortName (',' rwPortName)* ';' ;
-rwPortName : Identifier;
+instruction : INST Identifier LPAREN parameters? RPAREN LBRACE arch_body* RBRACE ;
 
+funcunit: FUNCUNIT Identifier SEMI
+        | FUNCUNIT Identifier LBRACE (issue_body (',' issue_body)* ','?)? RBRACE;
 
-// operand
-operModule : OperKW operName '{' operBody* '}' ;
-operName : Identifier;
-operBody : operVarDefine
-         | operBinaryDefine
-         | operSyntaxDefine
-         | operSematicDefine ;
-operVarDefine : UintType Identifier ';';
-operBinaryDefine  : Binary '{' operExpr '}' ;
-operSyntaxDefine  : Syntax '{' operExpr '}' ;
-operSematicDefine : Sematic '{' (operExpr | operRegExpr) '}' ;
-operRegExpr : regName '[' operExpr ']' ;
-operExpr : '(' operExpr ')'                   # OperBrachet
-         | operExpr Concat operExpr           # OperConcat
-         | operExpr ( Star | Div ) operExpr   # OperMuldiv
-         | operExpr ( Plus | Minus ) operExpr # OperPlusMinus
-         | ('"' Identifier '"')               # OperString
-         | ('"' Digit '"')                    # OperString
-         | BinaryData                         # OperBinary
-         | Identifier                         # OperVariable
-         | Digit                              # OperDigit
+issue: ISSUE Identifier LBRACE issue_body (',' issue_body)* ','? RBRACE ('<=' expr)? SEMI;
+
+issue_body : (INPUT | OUTPUT ) type=expr content=expr;
+
+forward : FORWARD LBRACE statement* RBRACE ;
+
+addrspace : ADDRSPACE Identifier LBRACE statement* RBRACE ;
+
+memory : MEMORY Identifier LBRACE statement* memif* RBRACE ;
+
+memif: 'MemIf' Identifier LBRACE statement* RBRACE ;
+
+interface: INTERFACE Identifier LBRACE statement* RBRACE ;
+
+struct : STRUCT Identifier generic? LBRACE (declaration SEMI)* RBRACE ;
+
+enum : ENUM Identifier generic? LBRACE enum_body* RBRACE ;
+
+enum_body: Identifier SEMI
+         | Identifier LPAREN parameters? RPAREN SEMI
          ;
 
+function : EXTERN? ty Identifier generic? LPAREN parameters? RPAREN ('requiring' LPAREN arguments RPAREN)? expr_block;
 
-// memory
-memModule : MemKW memName memSize  '{' memBody* '}' ;
-memName : Identifier;
-memSize : '[' Digit ']' '[' Digit ']';
-memBody : memAttrExpr
-        | memInterface
-        ;
-memAttrExpr : memAttrExpr '=' memAttrExpr ';'  # MemEqual
-            | Identifier                       # MemAttr
-            | Digit                            # MemValue
+trait : 'trait' Identifier (LPAREN parameters RPAREN)? ('requiring' LPAREN arguments RPAREN)? LBRACE trait_body* RBRACE;
+impl: 'impl' Identifier (LPAREN arguments RPAREN)? ('requiring' LPAREN arguments RPAREN)? LBRACE impl_body* RBRACE;
+typedef: 'typedef' Identifier ty SEMI;
+
+trait_body: declaration ';'
+          | proto
+          ;
+proto: ty Identifier generic? LPAREN parameters? RPAREN ('requiring' LPAREN arguments RPAREN)?;
+impl_body: declaration ';'
+         | function
+         ;
+prototype: EXTERN? proto ';';
+
+ty : ADDRSPACE
+   | ISSUE
+   | INTERFACE
+   | MEMORY
+   | FUNCUNIT
+   | Identifier generic?
+   | PCREG generic
+   | AUTO
+   | BASE
+   ;
+
+parameters: ('{' implicit=param (',' implicit=param)* '}' ',')? param (',' param)* ;
+
+param: ty Identifier ;
+
+//type: expr generic?
+//    | AUTO
+//    ;
+//
+//type_params: type_param (',' type_param)* ;
+//
+//type_param: type
+//          | expr
+//          ;
+
+generic : '(' expr_list ')' ;
+
+port_statement : (READPORT | WRITEPORT) expr_list SEMI;
+
+//==============================
+alias_statement : 'alias_to';
+//==============================
+
+arch_body : semantics
+          | binary
+          | syntax
+          ;
+
+semantics: SEMATIC expr_block ;
+
+binary: BINARY expr_block ;
+
+syntax: SYNTAX expr_block ;
+
+arguments : expr (',' expr)* ;
+
+expr_block: LBRACE statement* expr? RBRACE ;
+
+block: LBRACE statement* RBRACE ;
+
+statement : declaration SEMI
+          | assignment SEMI
+          | condition
+          | loop
+          | iteration
+          | try_statement
+          | THROW expr SEMI
+          | expression=expr SEMI
+          | RETURN expr SEMI
+          | import_statement
+          | stage_statement
+          ;
+
+declaration : EXTERN ? CONST? ty name=Identifier
+            | EXTERN ? CONST? vret=ty name=Identifier ASSIGN expr
             ;
-memInterface : MemIf memIfName '{' busType* '}' ';'  ;
-memIfName : Identifier ;
-busType   : 'AHB_LITE'
-          | 'AXI'
-          | 'APB'
-          ;
 
-fuModule : FuKW operName parameters '{' fuBody* '}' ;
-parameters : '(' param_list+=parameter (',' param_list+=parameter)* ')' ;
-parameter : FuIn type Identifier
-          | FuOut type Identifier
-          | InOut type Identifier
-          ;
-type : UintType
-     | IntType
-     | Void
-     | Char
-     | Short
-     | Int
-     | UInt
-     | Long
+assignment: lhs=expr ASSIGN rhs=expr ;
+
+condition : IF LPAREN cond=expr RPAREN then=block (ELSE IF LPAREN elcond=expr RPAREN other=block)*
+            (ELSE el=block) ? ;
+
+loop : WHILE LPAREN end_expr=expr RPAREN LBRACE statement* RBRACE
+     | FOR LPAREN (declaration | assignment)? SEMI cond=expr? SEMI iter=expr? RPAREN LBRACE statement* RBRACE
      ;
-fuBody : varDecl ';'
-       | fuStage
-       ;
-varDecl : type Identifier (',' Identifier)* ;
-fuStage : Stage single=stagePipe '{' stageBody* '}'
-        | Stage left=stagePipe '..' right=stagePipe '{' stageBody* '}';
-stagePipe : left=Identifier '.' right=Identifier ;
-stageBody : suite
-          | Commit ';'
-          ;
-suite : expression ';'
-      | assign
-      | ifStatement
-      | forIteration
-      ;
-assign : left=assignTarget '=' right=expression ';' ;
-assignTarget : Identifier
-             | assignTarget assignTrialer
+
+iteration : FOR LPAREN declaration COLON expr RPAREN block;
+
+try_statement : TRY LBRACE statement* RBRACE (CACHE LPAREN expr RPAREN block)*;
+
+import_statement : IMPORT expr SEMI
+                 | USING IMPORT expr SEMI
+                 ;
+
+stage_statement : 'stage' cond=expr block ;
+
+expr_list : expr (',' expr) * ;
+
+expr : '_'
+     | struct_init=Identifier '{' expr_list? '}'
+     | left=expr ACCESS bee=Identifier
+     |   deref='$' operand_expr=expr
+     | list='[' expr_list? ']'
+     | tuple=LPAREN expr_list? RPAREN
+     | array=expr '[' vector_slice? ']'
+     | inside=expr DOT bee=Identifier
+     | callee=expr LPAREN arguments? RPAREN
+     | <assoc=right> op=unary_op operand_expr=expr
+     | left=expr bin_factor_op right=expr
+     | left=expr bin_sum_op right=expr
+     | left=expr bin_shift_op right=expr
+     | left=expr compare_op right=expr
+     | left=expr bin_bit_op right=expr
+     | left=expr logic_op right=expr
+     | left=expr concat_op right=expr
+     | left=expr bind_op right=expr
+     | left=expr vars='..' right=expr
+     | left=expr EXCLUDE right=expr
+     | left=expr IN right=expr
+     | left=expr stage_bind='bind_to' right=expr
+    //  | unary_call=expr unary=expr
+    //  | left=expr binary_call=Identifier left=expr
+     | triple=expr QUE_MARK true_expr=expr COLON false_expr=expr
+     | left=expr assign_op right=expr
+     | lambda_expr
+     | if_expr
+     | reduction
+     | for_expr
+     | match_expr
+     | left=expr AT right=expr
+     | primary
+     ;
+
+match_expr : MATCH LPAREN expr_list RPAREN LBRACE (CASE LPAREN case=expr_list RPAREN expr_block)* RBRACE;
+
+reduction : FOR LPAREN (declaration | assignment)* SEMI expr_list? SEMI expr_list? RPAREN
+            LBRACE statement* RBRACE YIELD LBRACE Identifier RBRACE
+;
+
+lambda_expr : LPAREN parameters? RPAREN expr_block ;
+
+if_expr : IF cond=expr THEN then=expr_block ELSE other=expr_block ;
+
+for_expr : '[' val=expr '|' FOR iter=expr IN cond=expr ']' ;
+
+vector_slice : base=expr
+             | low = expr? COLON uper = expr? (COLON step=expr)?
              ;
-assignTrialer : '[' subscript ']'
-              | '.' assignTarget
-              ;
 
-expression : res=expression '?' first=expression ':' second=expression
-           | '(' type ')' expression
-           | inside=expression '.' bee=expression
-        //    | '[' exprList? ']'
-        //    | '(' exprList? ')'
-           | expression '[' subscript ']'
-           | callee=expression '(' arguments=exprList? ')'
-           | expression logicalOp expression
-           | expression Concat expression
-           | expression OrOr expression
-           | expression shiftOp expression
-           | expression binaryOp expression
-           | expression compareOp expression
-           | unaryOp expression
-           | expression (PlusPlus | MinusMinus)
-           | atom
-           ;
+bin_bit_op : '|' | '&' | '^';
+bin_shift_op : '<<' | '>>';
+bin_factor_op : '*' | '/' | '%' ;
+bin_sum_op : '+' | '-';
+unary_op : '!' | '~' | '`&' | '`|' | '`^';
+compare_op : '==' | '!=' | '<' | '<=' | '>' | '>=';
+logic_op : '&&' | '||';
+bind_op : '<==' | '==>' ;
+assign_op : ':=' | '+=' | '-='  ;
+concat_op : '<+>' | '++' | '<:' ;
 
-logicalOp : AndAnd
-          | OrOr
-          ;
-
-shiftOp: LeftShift
-       | RightShift
-       ;
-
-binaryOp : Plus
-         | Minus
-         | Star
-         | Div
-         | Mod
-         | And
-         | Or
-         | Caret
-         ;
-
-compareOp : Less
-          | LessEqual
-          | Greater
-          | GreaterEqual
-          | Equality
-          | NotEqual
-          ;
-
-unaryOp : Or
-        | Caret
-        | And
-        | Minus
-        | Tilde
-        | Not
+primary : Identifier
+        | constant
+        | STRINGLIT
+        | CHARLIT
+        | ('True' | 'False')
+        | BASE
         ;
 
-atom : id=Identifier
-     | ('"' stringId=Identifier '"')
-     | ('"' stringNum=Digit '"')    
-     | BinaryData
-     | num=Digit
-     ;
-exprList : expression
-         | exprList Comma expression
-         | subscript
+constant : Literal
+         | Integer
+         | Double
+         | FullIntLit
          ;
-arglist : expression (',' expression)* ;
-// subscriptlist : subscript (',' subscript)* ','? ;
-subscript : low = expression? Colon uper = expression? (Colon step=expression)?
+
+IF : 'if';
+ELSE : 'else';
+WHILE : 'while';
+FOR : 'for';
+YIELD : 'yield';
+RETURN : 'return';
+STRUCT : 'struct';
+TRAIT : 'trait';
+IMPL : 'impl';
+ENUM : 'enum';
+AUTO : 'auto';
+MATCH : 'match';
+BASE: 'Type' ;
+CASE : 'case';
+TYPEDEF : 'typedef';
+TRY : 'try';
+CACHE : 'cache';
+THROW : 'throw';
+IMPORT : 'import';
+THEN : 'then';
+IN : 'in';
+PIPELINE : 'Pipeline';
+PCREG : 'PCReg';
+WRITEPORT : 'Writeport';
+READPORT : 'Readport';
+OPERAD : 'Operand';
+FUNCUNIT: 'FuncUnit';
+INST: 'Instruction';
+SEMATIC: 'Semantics';
+BINARY: 'Binary';
+SYNTAX: 'Syntax';
+ISSUE : 'Issue';
+INPUT : 'Input';
+OUTPUT : 'Output';
+FORWARD : 'Forward';
+ADDRSPACE : 'AddrSpace';
+MEMORY : 'Memory';
+INTERFACE : 'Interface';
+EXCLUDE : 'exclude';
+NAMESPACE : 'namespace' ;
+USING : 'using' ;
+CONST : 'const' ;
+EXTERN : 'extern' ;
+ASSIGN : '=';
+LBRACE : '{';
+RBRACE : '}';
+LPAREN : '(';
+RPAREN : ')';
+COMMA : ',';
+SEMI : ';';
+COLON : ':';
+ACCESS: '::';
+DOT : '.';
+QUE_MARK : '?' ;
+AT : '@' ;
+LET : '<=' ;
+LARROW : '<==' ;
+GET : '>=' ;
+RSARROW : '=>' ;
+RARROW : '==>';
+
+STRINGLIT
+ : '"' ( '\\' [btnfr"'\\] | ~[\r\n\\"] )* '"'
+ ;
+CHARLIT
+ : '\'' ( '\\' [btnfr"'\\] | ~[\r\n\\'] ) '\''
+ ;
+
+Identifier : IdentifierNotDigit (IdentifierNotDigit | Digit )*;
+
+FullIntLit: '0x' '_'* [0-9a-fA-F] [0-9a-fA-F_]*
+          | '0o' '_'* [0-7] [0-7_]*
+          | '0b' '_'* [01] [01_]*
           ;
 
-ifStatement : If '(' expression ')' '{' thenBody+=suite* '}' (Else '{' elBody+=suite* '}')? ;
+Literal : Integer_Literal ['] [bodx]? Integer_Expr [us]?
+;
 
-forIteration : For '(' forIterBody ')' '{' suite* '}' ;
-forIterBody : (varDecl '=' lowerBound=expression)? ';' upBound=expression? ';' iter=expression? ;
+Integer: Integer_Literal;
 
-instrModule : InstrKW Identifier '(' instrParameters ')' '{' instrBody* '}';
-instrParameters : instrPara (',' instrPara)*;
-instrPara : paraType=Identifier paramId=Identifier ;
-instrBody : varDecl ';'
-          | instrBinary
-          | instrSyntax
-          | instrSematic
-          ;
-instrBinary : Binary '{' instrExpr '}' ;
-instrExpr : instrAtom (Concat instrAtom)* ;
-instrAtom : Identifier
-          | BinaryData
-          | Digit
-          ;
-instrSyntax : Syntax '{' '"' syntaxBody '"' '}';
-syntaxBody : instrName syntaxArguments ;
-instrName : Identifier
-          | Identifier '.' Identifier
-          ;
-syntaxArguments : syntaxArg (',' syntaxArg)* ;
-syntaxArg : '%' Identifier
-          | '%' offset=Identifier '(' '%' Identifier ')'
-          ;
-instrSematic : Sematic '{' sematicBody* '}';
-sematicBody : fuStage
-            | expression ';'
-            ;
+Double: Double_Literal;
 
-configModule : 'Config' Identifier '{' configEntry* '}' ;
-configEntry : Identifier '=' configValue ';'? ;
-configValue : Digit
-            | Identifier
-            | DigitId
-            | HexDigit
-            | 'APB'
-            | '{' configValue (',' configValue)* '}'
-            ;
+fragment
+Integer_Expr : Integer_Literal  ( '_' | Integer_Literal) *
+;
 
-// Lexer Part
-PipeKW : 'Pipeline';
-RegKW : 'Regfile';
-MemKW : 'Memory';
-OperKW : 'Operand';
-ParaKW : 'Parameter';
-FuKW : 'FuncUnit';
-InstrKW : 'Instruction';
-IncludeKW : 'include' ;
-ReadPort : 'readport';
-WritePort : 'writeport';
-MemIf : 'memif';
-Stage : 'stage';
+fragment
+IdentifierNotDigit : [a-zA-Z_];
 
-FuIn : 'in';
-FuOut : 'out';
-InOut : 'inout';
+fragment
+Digit : [0-9];
 
-Binary : 'binary' ;
-Syntax : 'syntax' ;
-Sematic : 'sematic' ;
+fragment
+Integer_Literal
+       : DigitNotZero Digit*
+       | Digit
+       ;
 
-If : 'if';
-Else : 'else';
-For : 'for';
-Commit : 'commit';
+fragment
+DigitNotZero : [1-9];
 
-Less : '<';
-LessEqual : '<=';
-Greater : '>';
-GreaterEqual : '>=';
-LeftShift : '<<';
-RightShift : '>>';
-Equality : '==';
-NotEqual : '!=';
+//fragment
+//Any: '\u0021' .. '\u0024'
+//   | '\u0026' .. '\u0027'
+//   | '\u002A' .. '\u002B'
+//   | '\u002D' .. '\u002F'
+//   | '\u003C' .. '\u0040'
+//   | '\u005B' .. '\u005C'
+//   | '\u005E' .. '\u005F'
+//   | '\u00C0'..'\u00D6'
+//   | '\u00D8'..'\u00F6'
+//   | '\u00F8'..'\u02FF'
+//   | '\u0370'..'\u037D'
+//   | '\u037F'..'\u1FFF'
+//   | '\u200C'..'\u200D'
+//   | '\u2070'..'\u218F'
+//   | '\u2C00'..'\u2FEF'
+//   | '\u3001'..'\uD7FF'
+//   | '\uF900'..'\uFDCF'
+//   | '\uFDF0'..'\uFFFD' ;
 
-Plus : '+';
-PlusPlus : '++';
-Minus : '-';
-MinusMinus : '--';
-Star : '*';
-Div : '/';
-Mod : '%';
+fragment
+Double_Literal
+       : (Digit+)? '.' Digit+ Digit+ [df]?
+       | Digit+ '.' [df]?
+       ;
 
-And : '&';
-Or : '|';
-AndAnd : '&&';
-OrOr : '||';
-Caret : '^';
-Not : '!';
-Tilde : '~';
-Concat : '::';
-Comma : ',';
-Colon : ':';
-
-UintType : 'uint' Digit+;
-IntType : 'int' Digit+;
-Void : 'void';
-Char : 'char';
-Short : 'short';
-Int : 'int';
-UInt : 'unsigned' 'int';
-Long : 'long';
-
-BinaryData : [0-9]+ ['][bB] [0-1]+ ;
-Identifier : [a-zA-Z][a-zA-Z0-9_]* ;
-Digit : [0-9]+ ;
-DigitId : [0-9]+[a-zA-Z]+ ;
-HexDigit : [0][xX][0-9a-fA-F]+ ;
-
-
-WS : [ \r\n\t] -> skip ;              // skip spaces, tabs, newlines
-LineComment : '//' .*? '\n' ->skip ;
-BlockComment : '/*' .*? '*/' ->skip ;
-
+Whitespace : [ \t\r\n]+ -> skip;
+LineComment : '//' ~('\n'|'\r')* '\r'? '\n' -> channel(HIDDEN);
+BlockComment : '/*' .*? '*/' -> channel(HIDDEN);

@@ -3,9 +3,10 @@
     "fileTypes": ["al"],
     "name": "riscal",
     "scopeName": "source.riscal",
+
     "patterns": [
         {
-           "include": "#comment"
+           "include": "#comments"
         },
         {
             "include": "#keywords"
@@ -27,23 +28,36 @@
         "comments": {
             "patterns": [
                 {
-                    "name": "comment.line.double-dash",
+                    "name": "comment.line.double-slash",
                     "match": "\\/\\/.*$"
+                },
+
+                {
+                    "name": "comment.block",
+                    "match": "\\/\\*(.|\\n)*\\*\\/"
                 }
             ]
         },
+
         "keywords": {
             "patterns": [
                 {
                    "name": "keyword.control.riscal",
                    "match": "\\b(for|if|break|commit|else|while|return)\\b" 
                 },
+
+                {
+                    "name": "keyword.other.unit",
+                    "match": "\\b(Binary|Syntax|Semantics|Input|Output|Readport|Writeport|Src|Dst|Base|Size|AGRU|Bank|ECC_Enable|MemIf|AccessAddrSpace|Attribute|MaxAGRU|Protocal)\\b"
+                },
+
                 {
                     "name": "keyword.other.riscal",
-                    "match": "\\b(Parameter|Pipeline|Regfile|Operand|Memory|FuncUnit|Instruction)\\b"
+                    "match": "\\b(namespace|Pipeline|PCReg|ArchRegFile|Operand|Memory|FuncUnit|Instruction|Issue|AddrSpace|Interface|Forward|stage|bind_to|pipe_stall|Label)\\b"
                 }
             ]
         },
+
         "operators": {
             "patterns": [
                 {
@@ -56,10 +70,21 @@
             "patterns": [
                 {
                     "name": "storage.type.riscal",
-                    "match": "\\b(uint[0-9]+|readport|writeport|int|)\\b"
+                    "match": "\\b(UInt[0-9]+|SInt[0-9]+|Float|Vec)\\b"  
                 }   
             ]
         },
+
+        "constants": {
+            "patterns": [
+              {
+                "name": "constand.numeric",
+                "match": "\\b([1-9][0-9]*|0x[0-9a-fA-F]+|0X[0-9a-fA-F]+)\\b"
+              }   
+            ]
+        },
+
+
         "strings": {
             "patterns": [
               {
