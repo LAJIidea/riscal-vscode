@@ -1,10 +1,14 @@
-import { createConnection, TextDocuments, TextDocument, Diagnostic, ProposedFeatures, InitializeParams, ConfigurationParams, ConfigurationRequest, InitializeResult, DiagnosticSeverity, DidChangeConfigurationNotification } from "vscode-languageserver";
+import { createConnection, TextDocuments, TextDocument, Diagnostic, ProposedFeatures, InitializeParams, InitializeResult, DidChangeConfigurationNotification, Range, Position } from "vscode-languageserver";
+import { Compilation } from "./tools/compilation";
+import { runSafe, runSafeAsync } from "./tools/runner";
 
 // Create a connection for the server.
 let connection = createConnection(ProposedFeatures.all);
 
 // Create a document manager.
 let documents: TextDocuments = new TextDocuments();
+
+let compilation: Compilation = new Compilation();
 
 let hasConfigurationCapability: boolean = false;
 
@@ -21,8 +25,8 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
             completionProvider: {
                 resolveProvider: true,
             },
-            hoverProvider: true,
-            documentHighlightProvider: true,
+            hoverProvider: false,
+            documentHighlightProvider: false,
             definitionProvider: true
         }
     };
@@ -62,6 +66,7 @@ const validationDelayMs = 0;
 // The context of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
+    change.document
     triggerValidation(change.document);
 });
 
@@ -113,9 +118,46 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 }
 
 function getRiscalValidation(textDocument: TextDocument): Diagnostic[] {
-    let diagnostics: Diagnostic[] = [];
-    return diagnostics;
+    return compilation.update(textDocument);
 }
+
+// This handler provides the initial list of the completion items.
+connection.onCompletion(async (textDocumentPosition, token) => {
+  return runSafeAsync(async () => {
+    const document = documents.get(textDocumentPosition.textDocument.uri);
+    if (!document) {
+      return null;
+    }
+    
+    // let caret = document.getText().substring(document.offsetAt(textDocumentPosition.position)-1);
+    // console.log(textDocumentPosition.textDocument.uri)
+    return compilation.complete(textDocumentPosition);
+    // return null;
+  }, null, `Error while computing completions for ${textDocumentPosition.textDocument.uri}`, token);
+});
+
+// This handler resolve additional information for the item selected in the completion list.
+connection.onCompletionResolve((item, token) => {
+  return runSafe(() => {
+    const data = item.data;
+
+    return item;
+  }, item, `Error while resolving completion proposcal`, token);
+});
+
+connection.onHover((textDocumentPosition, token) => {
+  return runSafe(() => {
+    return null;
+  }, null, `Error while computing hover for ${textDocumentPosition.textDocument.uri}`, token);
+});
+
+connection.onDefinition((definitionParams, token) => {
+  return runSafe(() => {
+    const document = documents.get(definitionParams.textDocument.uri);
+    // return compilation.find_defination(document, definitionParams.position);
+    return {uri: definitionParams.textDocument.uri, range: Range.create(Position.create(1, 0), Position.create(1, 1))}
+  }, null, `Error while computing definitions for ${definitionParams.textDocument.uri}`, token);
+});
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
